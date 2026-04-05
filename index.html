@@ -3,393 +3,483 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Productivity Dashboard</title>
+  <title>Student Productivity Dashboard (5 Charts)</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #111827 45%, #1e293b);
       color: #f8fafc;
       padding: 20px;
+      min-height: 100vh;
     }
-    .container { max-width: 1400px; margin: auto; }
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-      font-size: 2.2rem;
-    }
-    p.subtitle {
-      text-align: center;
-      color: #cbd5e1;
-      margin-bottom: 25px;
-    }
+    .container { max-width: 1440px; margin: auto; }
+    h1 { text-align: center; margin-bottom: 10px; font-size: 2.3rem; }
+    p.subtitle { text-align: center; color: #cbd5e1; margin-bottom: 24px; line-height: 1.6; }
     .upload-box {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      padding: 18px;
-      border-radius: 18px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 20px;
+      border-radius: 22px;
       margin-bottom: 24px;
       display: flex;
       flex-wrap: wrap;
       gap: 14px;
       align-items: center;
       justify-content: center;
+      backdrop-filter: blur(10px);
     }
-    input[type="file"] {
-      background: #fff;
-      color: #111827;
-      padding: 10px;
-      border-radius: 10px;
-      border: none;
-    }
-    button {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 10px;
+    .drop-zone {
+      width: 100%;
+      max-width: 560px;
+      border: 2px dashed rgba(56, 189, 248, 0.5);
+      border-radius: 18px;
+      padding: 26px;
+      text-align: center;
+      color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.45);
+      transition: 0.2s ease;
       cursor: pointer;
-      font-weight: bold;
+    }
+    .drop-zone.dragover {
+      border-color: #22d3ee;
+      background: rgba(8, 47, 73, 0.5);
+      transform: scale(1.01);
+    }
+    input[type="file"] { display: none; }
+    .btn {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
       background: #38bdf8;
       color: #0f172a;
     }
-    button:hover { opacity: 0.9; }
+    .btn.secondary { background: #e2e8f0; }
     .status {
       text-align: center;
       margin-bottom: 18px;
       color: #facc15;
       font-weight: 600;
+      min-height: 24px;
+    }
+    .meta-row {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 22px;
+    }
+    .pill {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 8px 12px; border-radius: 999px; color: #cbd5e1; font-size: 0.92rem;
     }
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
-    .kpi-card {
-      background: rgba(255,255,255,0.08);
+    .kpi-card, .chart-card {
+      background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 20px;
+      border-radius: 22px;
       padding: 20px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
     }
     .kpi-title { color: #cbd5e1; font-size: 0.95rem; margin-bottom: 8px; }
-    .kpi-value { font-size: 2rem; font-weight: bold; }
+    .kpi-value { font-size: 2rem; font-weight: 800; }
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
       gap: 20px;
       margin-bottom: 24px;
     }
-    .chart-card {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      min-height: 420px;
-    }
-    .chart-card h2 {
-      margin-bottom: 14px;
-      font-size: 1.2rem;
-      color: #e2e8f0;
-    }
+    .chart-card { min-height: 460px; }
+    .chart-card h2 { margin-bottom: 8px; font-size: 1.18rem; color: #e2e8f0; }
+    .chart-sub { color: #94a3b8; font-size: 0.92rem; margin-bottom: 14px; line-height: 1.5; }
     .chart-wrap { position: relative; height: 340px; }
     .full-width { margin-bottom: 24px; }
-    .heatmap-container {
-      overflow-x: auto;
-      margin-top: 12px;
+    .heatmap-container { overflow-x: auto; margin-top: 12px; }
+    table.heatmap { border-collapse: collapse; width: 100%; min-width: 850px; text-align: center; font-size: 0.9rem; }
+    .heatmap th, .heatmap td { border: 1px solid rgba(255,255,255,0.1); padding: 10px; }
+    .heatmap th { background: rgba(255,255,255,0.08); position: sticky; top: 0; }
+    .note { margin-top: 12px; color: #cbd5e1; font-size: 0.93rem; line-height: 1.6; }
+    .insight {
+      margin-top: 14px; padding: 12px 14px; border-radius: 14px;
+      background: rgba(15, 23, 42, 0.55); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.94rem; line-height: 1.6;
     }
-    table.heatmap {
-      border-collapse: collapse;
-      width: 100%;
-      min-width: 850px;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-    .heatmap th, .heatmap td {
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 10px;
-    }
-    .heatmap th {
-      background: rgba(255,255,255,0.08);
-      position: sticky;
-      top: 0;
-    }
-    .note {
-      margin-top: 12px;
-      color: #cbd5e1;
-      font-size: 0.9rem;
-      line-height: 1.5;
+    @media (max-width: 640px) {
+      h1 { font-size: 1.8rem; }
+      .chart-card { min-height: 420px; }
+      .chart-wrap { height: 300px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Student Productivity Dashboard</h1>
-    <p class="subtitle">Upload your CSV file and automatically generate KPI Cards, Correlation Heatmap, Scatter Plot, and Bubble Chart.</p>
+    <p class="subtitle">Upload any compatible CSV on any device. This version is optimized for <strong>clean, non-dense, presentation-ready charts</strong> using smart aggregation, sampling, and grouped summaries instead of plotting the full raw dataset.</p>
 
     <div class="upload-box">
+      <div class="drop-zone" id="dropZone">
+        <strong>Drop CSV here</strong> or tap to choose file<br>
+        <span style="font-size:0.9rem; color:#94a3b8;">Works on phone, laptop, tablet after deployment</span>
+      </div>
       <input type="file" id="csvFile" accept=".csv" />
-      <button onclick="loadCSV()">Upload & Generate Dashboard</button>
+      <button class="btn" onclick="loadCSV()">Generate Dashboard</button>
+      <button class="btn secondary" onclick="downloadSample()">Download Sample CSV Format</button>
     </div>
 
     <div class="status" id="status">Upload your dataset CSV to begin.</div>
+    <div class="meta-row" id="metaRow"></div>
 
     <div class="kpi-grid" id="kpiGrid"></div>
 
     <div class="full-width chart-card">
       <h2>Correlation Heatmap</h2>
+      <div class="chart-sub">Relationship strength between student lifestyle, distraction, and productivity variables.</div>
       <div class="heatmap-container" id="heatmapContainer"></div>
-      <div class="note">Shows the relationship strength between all numeric variables. Blue = positive relation, Red = negative relation.</div>
+      <div class="insight" id="heatmapInsight">Insight will appear after upload.</div>
     </div>
 
     <div class="grid-2">
       <div class="chart-card">
         <h2>Scatter Plot — Study Hours vs Productivity</h2>
+        <div class="chart-sub">Uses grouped averages by study-hour bins instead of plotting every student.</div>
         <div class="chart-wrap"><canvas id="scatterChart"></canvas></div>
+        <div class="insight" id="scatterInsight">Insight will appear after upload.</div>
       </div>
       <div class="chart-card">
         <h2>Bubble Chart — Phone Usage vs Productivity</h2>
+        <div class="chart-sub">Clustered bubbles reduce clutter and show dense student behavior groups.</div>
         <div class="chart-wrap"><canvas id="bubbleChart"></canvas></div>
+        <div class="insight" id="bubbleInsight">Insight will appear after upload.</div>
+      </div>
+      <div class="chart-card">
+        <h2>Box Plot Style Summary — Sleep Hours by Grade</h2>
+        <div class="chart-sub">Shows median, lower quartile, upper quartile, and spread using grouped grade categories.</div>
+        <div class="chart-wrap"><canvas id="boxChart"></canvas></div>
+        <div class="insight" id="boxInsight">Insight will appear after upload.</div>
       </div>
     </div>
+  </div>
   </div>
 
   <script>
     let scatterChartInstance = null;
     let bubbleChartInstance = null;
+    let boxChartInstance = null;
+    let lastUploadedName = '';
 
-    function normalizeKey(str) {
-      return str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    }
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('csvFile');
+    dropZone.addEventListener('click', () => fileInput.click());
+    ['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover');
+    }));
+    dropZone.addEventListener('drop', e => {
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        dropZone.innerHTML = `<strong>${e.dataTransfer.files[0].name}</strong><br><span style="font-size:0.9rem; color:#94a3b8;">Ready to generate</span>`;
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) {
+        dropZone.innerHTML = `<strong>${fileInput.files[0].name}</strong><br><span style="font-size:0.9rem; color:#94a3b8;">Ready to generate</span>`;
+      }
+    });
 
+    function normalizeKey(str) { return str.toLowerCase().replace(/[^a-z0-9]/g, ''); }
     function findColumn(headers, possibleNames) {
       const normalizedHeaders = headers.map(h => ({ original: h, normalized: normalizeKey(h) }));
       for (const name of possibleNames) {
         const target = normalizeKey(name);
-        const match = normalizedHeaders.find(h => h.normalized === target || h.normalized.includes(target) || target.includes(h.normalized));
-        if (match) return match.original;
+        const exact = normalizedHeaders.find(h => h.normalized === target);
+        if (exact) return exact.original;
+      }
+      for (const name of possibleNames) {
+        const target = normalizeKey(name);
+        const loose = normalizedHeaders.find(h => h.normalized.includes(target) || target.includes(h.normalized));
+        if (loose) return loose.original;
       }
       return null;
     }
-
     function parseNumber(value) {
       if (value === null || value === undefined || value === '') return NaN;
       const num = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
       return isNaN(num) ? NaN : num;
     }
-
-    function mean(arr) {
-      const valid = arr.filter(v => !isNaN(v));
-      return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
+    function mean(arr) { const valid = arr.filter(v => !isNaN(v)); return valid.length ? valid.reduce((a,b)=>a+b,0)/valid.length : 0; }
+    function median(arr) {
+      const valid = arr.filter(v => !isNaN(v)).sort((a,b)=>a-b);
+      if (!valid.length) return 0;
+      const mid = Math.floor(valid.length/2);
+      return valid.length % 2 ? valid[mid] : (valid[mid-1]+valid[mid])/2;
     }
-
+    function quantile(arr, q) {
+      const valid = arr.filter(v => !isNaN(v)).sort((a,b)=>a-b);
+      if (!valid.length) return 0;
+      const pos = (valid.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      return valid[base + 1] !== undefined ? valid[base] + rest * (valid[base + 1] - valid[base]) : valid[base];
+    }
     function pearsonCorrelation(x, y) {
       const pairs = [];
-      for (let i = 0; i < x.length; i++) {
-        if (!isNaN(x[i]) && !isNaN(y[i])) pairs.push([x[i], y[i]]);
-      }
+      for (let i=0;i<x.length;i++) if (!isNaN(x[i]) && !isNaN(y[i])) pairs.push([x[i], y[i]]);
       if (pairs.length < 2) return 0;
-      const xs = pairs.map(p => p[0]);
-      const ys = pairs.map(p => p[1]);
-      const meanX = mean(xs);
-      const meanY = mean(ys);
+      const xs = pairs.map(p=>p[0]), ys = pairs.map(p=>p[1]);
+      const meanX = mean(xs), meanY = mean(ys);
       let numerator = 0, denomX = 0, denomY = 0;
-      for (let i = 0; i < pairs.length; i++) {
-        const dx = xs[i] - meanX;
-        const dy = ys[i] - meanY;
-        numerator += dx * dy;
-        denomX += dx * dx;
-        denomY += dy * dy;
+      for (let i=0;i<pairs.length;i++) {
+        const dx = xs[i] - meanX, dy = ys[i] - meanY;
+        numerator += dx * dy; denomX += dx * dx; denomY += dy * dy;
       }
       return denomX && denomY ? numerator / Math.sqrt(denomX * denomY) : 0;
     }
-
     function getColorForCorrelation(value) {
       const intensity = Math.round(Math.abs(value) * 255);
-      if (value >= 0) {
-        return `rgba(${30}, ${144 + Math.floor(intensity / 3)}, 255, 0.85)`;
-      } else {
-        return `rgba(255, ${100 + Math.floor((255 - intensity) / 2)}, ${100 + Math.floor((255 - intensity) / 2)}, 0.85)`;
-      }
+      return value >= 0 ? `rgba(34, ${120 + Math.floor(intensity/2)}, 197, 0.88)` : `rgba(239, ${120 + Math.floor((255-intensity)/2)}, ${120 + Math.floor((255-intensity)/2)}, 0.88)`;
     }
-
+    function sampleEvenly(points, maxPoints = 350) {
+      if (points.length <= maxPoints) return points;
+      const sampled = [];
+      const step = points.length / maxPoints;
+      for (let i=0;i<maxPoints;i++) sampled.push(points[Math.floor(i * step)]);
+      return sampled;
+    }
+    function buildStudyBins(data, columns, binSize = 1) {
+      const bins = {};
+      data.forEach(r => {
+        const x = parseNumber(r[columns.study]);
+        const y = parseNumber(r[columns.productivity]);
+        if (isNaN(x) || isNaN(y)) return;
+        const bin = Math.floor(x / binSize) * binSize;
+        if (!bins[bin]) bins[bin] = [];
+        bins[bin].push(y);
+      });
+      return Object.entries(bins)
+        .map(([bin, ys]) => ({ x: Number(bin) + binSize/2, y: mean(ys), count: ys.length }))
+        .sort((a,b) => a.x - b.x);
+    }
+    function gradeToCategory(value) {
+      if (value === null || value === undefined) return null;
+      const raw = String(value).trim();
+      if (!raw) return null;
+      const upper = raw.toUpperCase();
+      if (['A+','A','B+','B','C+','C','D','E','F'].includes(upper)) return upper;
+      const num = parseNumber(raw);
+      if (!isNaN(num)) {
+        if (num >= 90) return 'A';
+        if (num >= 80) return 'B';
+        if (num >= 70) return 'C';
+        if (num >= 60) return 'D';
+        return 'F';
+      }
+      return upper;
+    }
+    function buildSleepByGrade(data, columns) {
+      const groups = {};
+      data.forEach(r => {
+        const grade = gradeToCategory(r[columns.grade]);
+        const sleep = parseNumber(r[columns.sleep]);
+        if (!grade || isNaN(sleep)) return;
+        if (!groups[grade]) groups[grade] = [];
+        groups[grade].push(sleep);
+      });
+      const order = ['A+','A','B+','B','C+','C','D','E','F'];
+      return Object.keys(groups)
+        .sort((a,b) => (order.indexOf(a) === -1 ? 999 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 999 : order.indexOf(b)))
+        .map(g => ({
+          grade: g,
+          min: Math.min(...groups[g]),
+          q1: quantile(groups[g], 0.25),
+          median: quantile(groups[g], 0.5),
+          q3: quantile(groups[g], 0.75),
+          max: Math.max(...groups[g]),
+          count: groups[g].length
+        }));
+    }
+    function getTrendline(points) {
+      if (points.length < 2) return [];
+      const xs = points.map(p=>p.x), ys = points.map(p=>p.y);
+      const xMean = mean(xs), yMean = mean(ys);
+      let num = 0, den = 0;
+      for (let i=0;i<points.length;i++) { num += (points[i].x-xMean)*(points[i].y-yMean); den += (points[i].x-xMean)**2; }
+      const slope = den ? num/den : 0, intercept = yMean - slope*xMean;
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      return [{ x:minX, y:slope*minX+intercept }, { x:maxX, y:slope*maxX+intercept }];
+    }
+    function createBubbles(data, columns) {
+      const valid = data.map(r => ({ phone: parseNumber(r[columns.phone]), prod: parseNumber(r[columns.productivity]), social: parseNumber(r[columns.social]) }))
+        .filter(d => !isNaN(d.phone) && !isNaN(d.prod));
+      const phoneBins = 10, prodBins = 10;
+      const minPhone = Math.min(...valid.map(d=>d.phone)), maxPhone = Math.max(...valid.map(d=>d.phone));
+      const minProd = Math.min(...valid.map(d=>d.prod)), maxProd = Math.max(...valid.map(d=>d.prod));
+      const phoneStep = (maxPhone-minPhone||1)/phoneBins, prodStep = (maxProd-minProd||1)/prodBins;
+      const grid = {};
+      valid.forEach(d => {
+        const i = Math.min(phoneBins-1, Math.floor((d.phone-minPhone)/phoneStep));
+        const j = Math.min(prodBins-1, Math.floor((d.prod-minProd)/prodStep));
+        const key = `${i}-${j}`;
+        if (!grid[key]) grid[key] = { phone:[], prod:[], social:[], count:0 };
+        grid[key].phone.push(d.phone); grid[key].prod.push(d.prod); if (!isNaN(d.social)) grid[key].social.push(d.social); grid[key].count++;
+      });
+      return Object.values(grid).map(cell => ({ x:mean(cell.phone), y:mean(cell.prod), r:Math.max(7, Math.min(24, Math.sqrt(cell.count)*1.8)), socialAvg:mean(cell.social), count:cell.count }));
+    }
+    function setMeta(info) {
+      document.getElementById('metaRow').innerHTML = info.map(t => `<div class="pill">${t}</div>`).join('');
+    }
     function renderKPIs(data, columns) {
-      const kpiGrid = document.getElementById('kpiGrid');
-      kpiGrid.innerHTML = '';
-
-      const study = mean(data.map(r => parseNumber(r[columns.study])));
-      const productivity = mean(data.map(r => parseNumber(r[columns.productivity])));
-      const phone = mean(data.map(r => parseNumber(r[columns.phone])));
-      const sleep = mean(data.map(r => parseNumber(r[columns.sleep])));
-      const records = data.length;
-      const focus = columns.focus ? mean(data.map(r => parseNumber(r[columns.focus]))) : null;
-
+      const kpiGrid = document.getElementById('kpiGrid'); kpiGrid.innerHTML = '';
+      const studyArr = data.map(r => parseNumber(r[columns.study]));
+      const prodArr = data.map(r => parseNumber(r[columns.productivity]));
+      const phoneArr = data.map(r => parseNumber(r[columns.phone]));
+      const sleepArr = data.map(r => parseNumber(r[columns.sleep]));
+      const focusArr = columns.focus ? data.map(r => parseNumber(r[columns.focus])) : [];
       const cards = [
-        { title: 'Total Students', value: records },
-        { title: 'Avg Productivity Score', value: productivity.toFixed(2) },
-        { title: 'Avg Study Hours', value: study.toFixed(2) },
-        { title: 'Avg Phone Usage (hrs)', value: phone.toFixed(2) },
-        { title: 'Avg Sleep Hours', value: sleep.toFixed(2) },
+        { title:'Total Students', value:data.length.toLocaleString() },
+        { title:'Avg Productivity Score', value:mean(prodArr).toFixed(2) },
+        { title:'Median Productivity', value:median(prodArr).toFixed(2) },
+        { title:'Avg Study Hours', value:mean(studyArr).toFixed(2) },
+        { title:'Avg Phone Usage (hrs)', value:mean(phoneArr).toFixed(2) },
+        { title:'Avg Sleep Hours', value:mean(sleepArr).toFixed(2) },
       ];
-      if (focus !== null) cards.push({ title: 'Avg Focus Score', value: focus.toFixed(2) });
-
+      if (columns.focus) cards.push({ title:'Avg Focus Score', value:mean(focusArr).toFixed(2) });
       cards.forEach(card => {
-        const div = document.createElement('div');
-        div.className = 'kpi-card';
+        const div = document.createElement('div'); div.className = 'kpi-card';
         div.innerHTML = `<div class="kpi-title">${card.title}</div><div class="kpi-value">${card.value}</div>`;
         kpiGrid.appendChild(div);
       });
     }
-
     function renderHeatmap(data, numericColumns) {
       const container = document.getElementById('heatmapContainer');
       const labels = Object.keys(numericColumns);
       const values = labels.map(label => data.map(r => parseNumber(r[numericColumns[label]])));
-
+      let strongest = { pair:'', value:0 };
       let html = '<table class="heatmap"><thead><tr><th>Variable</th>';
-      labels.forEach(label => html += `<th>${label}</th>`);
-      html += '</tr></thead><tbody>';
-
+      labels.forEach(label => html += `<th>${label}</th>`); html += '</tr></thead><tbody>';
       labels.forEach((rowLabel, i) => {
         html += `<tr><th>${rowLabel}</th>`;
         labels.forEach((colLabel, j) => {
           const corr = pearsonCorrelation(values[i], values[j]);
+          if (i !== j && Math.abs(corr) > Math.abs(strongest.value)) strongest = { pair:`${rowLabel} ↔ ${colLabel}`, value:corr };
           html += `<td style="background:${getColorForCorrelation(corr)}">${corr.toFixed(2)}</td>`;
-        });
-        html += '</tr>';
+        }); html += '</tr>';
       });
-
-      html += '</tbody></table>';
-      container.innerHTML = html;
+      html += '</tbody></table>'; container.innerHTML = html;
+      document.getElementById('heatmapInsight').innerHTML = `Strongest visible relationship: <strong>${strongest.pair}</strong> with correlation <strong>${strongest.value.toFixed(2)}</strong>. Values near +1 indicate strong positive relationship, while values near -1 indicate strong negative relationship.`;
     }
-
     function renderScatter(data, columns) {
-      const points = data
-        .map(r => ({ x: parseNumber(r[columns.study]), y: parseNumber(r[columns.productivity]) }))
-        .filter(p => !isNaN(p.x) && !isNaN(p.y));
-
+      const binnedPoints = buildStudyBins(data, columns, 1);
+      const trendline = getTrendline(binnedPoints);
+      const corr = pearsonCorrelation(
+        data.map(r=>parseNumber(r[columns.study])),
+        data.map(r=>parseNumber(r[columns.productivity]))
+      );
       if (scatterChartInstance) scatterChartInstance.destroy();
       scatterChartInstance = new Chart(document.getElementById('scatterChart'), {
-        type: 'scatter',
-        data: {
-          datasets: [{
-            label: 'Students',
-            data: points,
-            backgroundColor: 'rgba(56, 189, 248, 0.7)',
-            borderColor: 'rgba(56, 189, 248, 1)',
-            pointRadius: 5
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { labels: { color: '#fff' } }
-          },
-          scales: {
-            x: { title: { display: true, text: 'Study Hours per Day', color: '#fff' }, ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.08)' } },
-            y: { title: { display: true, text: 'Productivity Score', color: '#fff' }, ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.08)' } }
-          }
-        }
+        type:'scatter',
+        data:{ datasets:[
+          { label:`Average Productivity by Study-Hour Bin`, data:binnedPoints, backgroundColor:'rgba(56,189,248,0.55)', borderColor:'rgba(56,189,248,0.95)', pointRadius:ctx => Math.max(5, Math.min(12, Math.sqrt((ctx.raw?.count || 10))/2)), pointHoverRadius:8 },
+          { label:'Trendline', data:trendline, type:'line', borderColor:'rgba(250,204,21,1)', borderWidth:3, pointRadius:0, tension:0.25 }
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#fff' } }, tooltip:{ callbacks:{ label:(context)=>{ const d=context.raw; return `${context.dataset.label}: Study ${d.x.toFixed(1)} hrs, Productivity ${d.y.toFixed(2)}${d.count ? `, Students ${d.count}`:''}`; } } } }, scales:{ x:{ title:{ display:true, text:'Study Hours per Day (Binned)', color:'#fff' }, ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,0.08)' } }, y:{ title:{ display:true, text:'Average Productivity Score', color:'#fff' }, ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,0.08)' } } } }
       });
+      document.getElementById('scatterInsight').innerHTML = `This chart uses <strong>binned averages</strong> instead of plotting every student, so the relationship is cleaner and easier to interpret. Correlation between study time and productivity is <strong>${corr.toFixed(2)}</strong>.`;
     }
-
     function renderBubble(data, columns) {
-      const points = data
-        .map(r => ({
-          x: parseNumber(r[columns.phone]),
-          y: parseNumber(r[columns.productivity]),
-          r: Math.max(5, parseNumber(r[columns.social]) * 2 || 6)
-        }))
-        .filter(p => !isNaN(p.x) && !isNaN(p.y));
-
+      const points = createBubbles(data, columns);
+      const corr = pearsonCorrelation(data.map(r=>parseNumber(r[columns.phone])), data.map(r=>parseNumber(r[columns.productivity])));
       if (bubbleChartInstance) bubbleChartInstance.destroy();
       bubbleChartInstance = new Chart(document.getElementById('bubbleChart'), {
-        type: 'bubble',
-        data: {
-          datasets: [{
-            label: 'Students',
-            data: points,
-            backgroundColor: 'rgba(250, 204, 21, 0.5)',
-            borderColor: 'rgba(250, 204, 21, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { labels: { color: '#fff' } },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `Phone: ${context.raw.x}, Productivity: ${context.raw.y}, Social Size: ${context.raw.r}`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: { title: { display: true, text: 'Phone Usage Hours', color: '#fff' }, ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.08)' } },
-            y: { title: { display: true, text: 'Productivity Score', color: '#fff' }, ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.08)' } }
-          }
-        }
+        type:'bubble',
+        data:{ datasets:[{ label:`Clustered Student Groups (${points.length} bubbles)`, data:points, backgroundColor:'rgba(250,204,21,0.42)', borderColor:'rgba(250,204,21,1)', borderWidth:1.2 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#fff' } }, tooltip:{ callbacks:{ label:function(context){ const d=context.raw; return `Phone: ${d.x.toFixed(2)} hrs | Productivity: ${d.y.toFixed(2)} | Students: ${d.count} | Avg Social: ${d.socialAvg.toFixed(2)} hrs`; } } } }, scales:{ x:{ title:{ display:true, text:'Phone Usage Hours', color:'#fff' }, ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,0.08)' } }, y:{ title:{ display:true, text:'Productivity Score', color:'#fff' }, ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,0.08)' } } } }
       });
+      document.getElementById('bubbleInsight').innerHTML = `Instead of plotting every student, this chart uses <strong>clustered behavior groups</strong>. Phone usage and productivity show a <strong>${corr >= 0 ? 'positive' : 'negative'}</strong> association of <strong>${corr.toFixed(2)}</strong>.`;
     }
-
-    function loadCSV() {
-      const fileInput = document.getElementById('csvFile');
-      const file = fileInput.files[0];
-      const status = document.getElementById('status');
-
-      if (!file) {
-        status.textContent = 'Please upload a CSV file first.';
+    function renderBoxChart(data, columns) {
+      const groups = buildSleepByGrade(data, columns);
+      if (!groups.length) {
+        document.getElementById('boxInsight').innerHTML = 'No valid grade column found for sleep-by-grade analysis.';
         return;
       }
-
-      status.textContent = 'Reading CSV and generating dashboard...';
-
+      if (boxChartInstance) boxChartInstance.destroy();
+      boxChartInstance = new Chart(document.getElementById('boxChart'), {
+        type:'bar',
+        data:{
+          labels: groups.map(g => g.grade),
+          datasets:[
+            { label:'Q1', data: groups.map(g => g.q1), backgroundColor:'rgba(99,102,241,0.55)' },
+            { label:'Median', data: groups.map(g => g.median), backgroundColor:'rgba(34,197,94,0.75)' },
+            { label:'Q3', data: groups.map(g => g.q3), backgroundColor:'rgba(249,115,22,0.65)' }
+          ]
+        },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:'#fff' } }, tooltip:{ callbacks:{ afterBody:(items)=>{ const idx=items[0].dataIndex; const g=groups[idx]; return [`Min: ${g.min.toFixed(2)}`, `Max: ${g.max.toFixed(2)}`, `Students: ${g.count}`]; } } } }, scales:{ x:{ ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,0.08)' } }, y:{ title:{ display:true, text:'Sleep Hours', color:'#fff' }, ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,0.08)' } } } }
+      });
+      const top = [...groups].sort((a,b)=>b.median-a.median)[0];
+      document.getElementById('boxInsight').innerHTML = `This <strong>box-plot style summary</strong> compares sleep distribution across grades using quartiles instead of noisy raw points. <strong>${top.grade}</strong> students show the highest median sleep at <strong>${top.median.toFixed(2)} hrs</strong>.`;
+    }
+    function downloadSample() {
+      const sample = `study_hours_per_day,productivity_score,phone_usage_hours,social_media_usage_hours,sleep_hours,focus_score
+5.2,78,3.1,1.8,7.4,82
+6.0,85,2.5,1.3,7.8,88
+3.8,61,5.2,3.6,6.2,58
+4.5,70,4.1,2.4,6.8,67`;
+      const blob = new Blob([sample], { type:'text/csv;charset=utf-8;' });
+      const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'sample_student_productivity.csv'; link.click();
+    }
+    function loadCSV() {
+      const file = fileInput.files[0];
+      const status = document.getElementById('status');
+      if (!file) { status.textContent = 'Please upload a CSV file first.'; return; }
+      status.textContent = 'Reading CSV and generating deployable dashboard...';
+      lastUploadedName = file.name;
       Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          const data = results.data;
+        header:true,
+        skipEmptyLines:true,
+        dynamicTyping:false,
+        complete:function(results){
+          const data = results.data.filter(row => Object.values(row).some(v => String(v).trim() !== ''));
           const headers = results.meta.fields || [];
-
           const columns = {
-            study: findColumn(headers, ['study_hours_per_day', 'study_hours', 'study hours']),
-            productivity: findColumn(headers, ['productivity_score', 'productivity score']),
-            phone: findColumn(headers, ['phone_usage_hours', 'phone usage hours', 'phone_usage']),
-            social: findColumn(headers, ['social_media_usage_hours', 'social media usage hours', 'social_media_usage']),
-            sleep: findColumn(headers, ['sleep_hours', 'sleep hours']),
-            focus: findColumn(headers, ['focus_score', 'focus score'])
+            study: findColumn(headers, ['study_hours_per_day','study_hours','study hours']),
+            productivity: findColumn(headers, ['productivity_score','productivity score']),
+            phone: findColumn(headers, ['phone_usage_hours','phone usage hours','phone_usage']),
+            social: findColumn(headers, ['social_media_usage_hours','social media usage hours','social_media_usage']),
+            sleep: findColumn(headers, ['sleep_hours','sleep hours']),
+            focus: findColumn(headers, ['focus_score','focus score']),
+            grade: findColumn(headers, ['final_grade','grade','grades','exam_score','score','marks','final score'])
           };
-
           if (!columns.study || !columns.productivity || !columns.phone || !columns.sleep) {
             status.textContent = 'CSV missing required columns. Required: Study Hours, Productivity Score, Phone Usage Hours, Sleep Hours.';
+            setMeta(['Required columns not found']);
             return;
           }
-
-          const numericColumns = {
-            'Study Hours': columns.study,
-            'Productivity': columns.productivity,
-            'Phone Usage': columns.phone,
-            'Sleep Hours': columns.sleep
-          };
+          const numericColumns = { 'Study Hours':columns.study, 'Productivity':columns.productivity, 'Phone Usage':columns.phone, 'Sleep Hours':columns.sleep };
           if (columns.social) numericColumns['Social Media'] = columns.social;
           if (columns.focus) numericColumns['Focus Score'] = columns.focus;
-
           renderKPIs(data, columns);
           renderHeatmap(data, numericColumns);
           renderScatter(data, columns);
           renderBubble(data, columns);
-
-          status.textContent = `Dashboard generated successfully for ${data.length} records.`;
+          renderBoxChart(data, columns);
+          setMeta([
+            `File: ${lastUploadedName}`,
+            `Records: ${data.length.toLocaleString()}`,
+            `Detected Columns: ${Object.keys(numericColumns).join(', ')}${columns.grade ? ', Grade' : ''}`,
+            'Processing: Browser-side only'
+          ]);
+          status.textContent = `Dashboard generated successfully for ${data.length.toLocaleString()} records.`;
         },
-        error: function(err) {
-          status.textContent = 'Error reading CSV: ' + err.message;
-        }
+        error:function(err){ status.textContent = 'Error reading CSV: ' + err.message; }
       });
     }
   </script>
